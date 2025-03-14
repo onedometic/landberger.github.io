@@ -62,7 +62,8 @@
 <div id='loading'></div>
 <p><b>Scan for Dometic BLE devices:</b></p>
 <form id="bleForm" action="">
-    <button>Start BLE Scan</button>
+    <button id="startScan">Start BLE Scan</button>
+    <button id="stopScan" disabled>Stop Scan</button>
 </form>
 <div id="output_div" style="height: 300px; overflow-y: auto;">
     <p id="bleOutput"></p>
@@ -122,34 +123,64 @@
         return true;
     }
 
-    function scanForBLEDevices(event) {
-        if (event) {
-            event.stopPropagation();
-            event.preventDefault();
-        }
-        
-        loader.classList.add("display");
-        bleOutput.innerHTML = '>' + new Date().toLocaleTimeString() + '| Scanning for Dometic devices...<br>';
-        
-        navigator.bluetooth.requestDevice({
-            filters: [{ manufacturerData: [{ companyIdentifier: 0x0845 }] }]
-        })
-        .then(device => {
-            loader.classList.remove("display");
-            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Found device: ' + device.name + '<br>';
-            output_div.scrollTop = output_div.scrollHeight;
-        })
-        .catch(error => {
-            loader.classList.remove("display");
+    let isScanning = false;
+
+    async function startScanning() {
+        try {
+            const scan_options = {
+                filters: [{ manufacturerData: [{ companyIdentifier: 0x0845 }] }],
+                acceptAllAdvertisements: false
+            };
+            
+            await navigator.bluetooth.requestLEScan(scan_options);
+            isScanning = true;
+            document.getElementById('stopScan').disabled = false;
+            document.getElementById('startScan').disabled = true;
+            
+            bleOutput.innerHTML = '>' + new Date().toLocaleTimeString() + '| Scanning for Dometic devices...<br>';
+            
+            navigator.bluetooth.addEventListener('advertisementreceived', event => {
+                const device = event.device;
+                bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
+                    '| Found device: ' + device.name + '<br>';
+                
+                for (const [key, value] of event.manufacturerData) {
+                    const companyIdentifier = key.toString(16).padStart(4, '0');
+                    const data = Array.from(value, byte => byte.toString(16).padStart(2, '0')).join(' ');
+                    bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
+                        '| Manufacturer ID: 0x' + companyIdentifier + 
+                        ' | Data: ' + data + '<br>';
+                }
+                
+                output_div.scrollTop = output_div.scrollHeight;
+            });
+        } catch (error) {
             bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Error: ' + error + '<br>';
             output_div.scrollTop = output_div.scrollHeight;
-        });
+        }
+    }
+
+    function stopScanning() {
+        if (isScanning) {
+            navigator.bluetooth.stopLEScan();
+            isScanning = false;
+            document.getElementById('stopScan').disabled = true;
+            document.getElementById('startScan').disabled = false;
+            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Scanning stopped<br>';
+            output_div.scrollTop = output_div.scrollHeight;
+        }
     }
 
     document.querySelector('#bleForm').addEventListener('submit', function(event) {
+        event.preventDefault();
         if (isWebBLEAvailable()) {
-            scanForBLEDevices(event);
+            startScanning();
         }
+    });
+
+    document.querySelector('#stopScan').addEventListener('click', function(event) {
+        event.preventDefault();
+        stopScanning();
     });
 </script>
 </body>
