@@ -138,17 +138,17 @@
             loader.classList.remove("display");
             bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
                 '| Found device: ' + device.name + '<br>';
-            
-            // Log manufacturer data if available
-            if (device.manufacturerData) {
-                for (const [key, value] of device.manufacturerData) {
-                    const companyIdentifier = key.toString(16).padStart(4, '0');
-                    const data = Array.from(value, byte => byte.toString(16).padStart(2, '0')).join(' ');
-                    bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
-                        '| Manufacturer ID: 0x' + companyIdentifier + 
-                        ' | Data: ' + data + '<br>';
-                }
-            }
+
+            // Connect to the device to read manufacturer data
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService('device_information');
+            const characteristic = await service.getCharacteristic('manufacturer_name_string');
+            const value = await characteristic.readValue();
+            const decoder = new TextDecoder('utf-8');
+            const manufacturerName = decoder.decode(value);
+
+            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
+                '| Manufacturer Name: ' + manufacturerName + '<br>';
             
             output_div.scrollTop = output_div.scrollHeight;
         } catch (error) {
