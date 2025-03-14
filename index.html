@@ -2,6 +2,28 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <style>
+        #loading {
+            width: 2rem;
+            height: 2rem;
+            border: 5px solid #919191;
+            border-top: 6px solid #000000;
+            border-radius: 100%;
+            margin: auto;
+            visibility: hidden;
+            animation: spin 1s infinite linear;
+            position: fixed;
+            right: 0;
+            top: 0;
+        }
+        #loading.display {
+            visibility: visible;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
 <h1>Hello World</h1>
@@ -34,6 +56,17 @@
 <b>Your Local IP address is:</b>
 <span id="localIpAddress">Detecting...</span>
 </p>
+
+<hr>
+<h2>BLE Device Scanner</h2>
+<div id='loading'></div>
+<p><b>Scan for Dometic BLE devices:</b></p>
+<form id="bleForm" action="">
+    <button>Start BLE Scan</button>
+</form>
+<div id="output_div" style="height: 300px; overflow-y: auto;">
+    <p id="bleOutput"></p>
+</div>
 
 <script>
     document.getElementById('userAgent').textContent = navigator.userAgent;
@@ -76,6 +109,48 @@
     }
 
     getLocalIPs();
+
+    const loader = document.querySelector("#loading");
+    const bleOutput = document.getElementById("bleOutput");
+    const output_div = document.getElementById("output_div");
+
+    function isWebBLEAvailable() {
+        if (!navigator.bluetooth) {
+            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Web BLE is not available.<br>';
+            return false;
+        }
+        return true;
+    }
+
+    function scanForBLEDevices(event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        
+        loader.classList.add("display");
+        bleOutput.innerHTML = '>' + new Date().toLocaleTimeString() + '| Scanning for Dometic devices...<br>';
+        
+        navigator.bluetooth.requestDevice({
+            filters: [{ manufacturerData: [{ companyIdentifier: 0x0845 }] }]
+        })
+        .then(device => {
+            loader.classList.remove("display");
+            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Found device: ' + device.name + '<br>';
+            output_div.scrollTop = output_div.scrollHeight;
+        })
+        .catch(error => {
+            loader.classList.remove("display");
+            bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + '| Error: ' + error + '<br>';
+            output_div.scrollTop = output_div.scrollHeight;
+        });
+    }
+
+    document.querySelector('#bleForm').addEventListener('submit', function(event) {
+        if (isWebBLEAvailable()) {
+            scanForBLEDevices(event);
+        }
+    });
 </script>
 </body>
 </html>
