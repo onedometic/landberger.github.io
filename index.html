@@ -26,6 +26,10 @@
 <b>The server's port:</b>
 <span id="port"></span>
 </p>
+<p>
+<b>Your IP address is:</b>
+<span id="ipAddress">Loading...</span>
+</p>
 
 <script>
     document.getElementById('userAgent').textContent = navigator.userAgent;
@@ -33,6 +37,15 @@
     document.getElementById('protocol').textContent = window.location.protocol;
     document.getElementById('domain').textContent = window.location.host;
     document.getElementById('port').textContent = window.location.port || '80/443';
+
+    fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('ipAddress').textContent = data.ip;
+        })
+        .catch(error => {
+            document.getElementById('ipAddress').textContent = 'Unable to fetch IP';
+        });
 </script>
 </body>
 </html>
