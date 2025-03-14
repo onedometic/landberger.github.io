@@ -139,6 +139,15 @@
             bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
                 '| Found device: ' + device.name + '<br>';
 
+            // Extract IP address from device name
+            const ipMatch = device.name.match(/_(\d+\.\d+\.\d+\.\d+)/);
+            if (ipMatch) {
+                const ipAddress = ipMatch[1];
+                const ipLink = `http://${ipAddress}`;
+                bleOutput.innerHTML += '>' + new Date().toLocaleTimeString() + 
+                    '| Device IP: <a href="' + ipLink + '" target="_blank">' + ipLink + '</a><br>';
+            }
+
             // Connect to the device to read manufacturer data
             const server = await device.gatt.connect();
             const service = await server.getPrimaryService('device_information');
